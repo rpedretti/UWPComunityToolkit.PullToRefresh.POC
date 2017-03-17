@@ -1,6 +1,7 @@
 using Microsoft.Toolkit.Uwp.UI.Animations;
 using Microsoft.Toolkit.Uwp.UI.Controls;
 using System;
+using System.Diagnostics;
 using UWPComunityToolkit.PullToRefresh.POC.ViewModels;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
@@ -10,6 +11,8 @@ namespace UWPComunityToolkit.PullToRefresh.POC.Views
 {
     public sealed partial class MainPage : Page
     {
+        private bool _animating;
+
         public MainPage()
         {
             InitializeComponent();
@@ -21,27 +24,38 @@ namespace UWPComunityToolkit.PullToRefresh.POC.Views
 
         private void List_PullProgressChanged(object sender, Microsoft.Toolkit.Uwp.UI.Controls.RefreshProgressEventArgs e)
         {
-            if (e.PullProgress == 1)
+            if (e.PullProgress == 1 && !_animating)
             {
+                _animating = true;
                 if (progressAnimation.GetCurrentState() == ClockState.Active)
                 {
                     progressAnimation.Stop();
                 }
 
+                Debug.WriteLine("Animating");
                 progressAnimation.Begin();
             }
-            else
+            else if (e.PullProgress < 1)
             {
-                renderTransform.Angle = e.PullProgress * 720;
+                if (progressAnimation.GetCurrentState() == ClockState.Active)
+                {
+                    progressAnimation.Stop();
+                    _animating = false;
+                }
+
+                renderTransform.Angle = e.PullProgress * 360;
             }
         }
 
         private async void MyList_RefreshRequested(object sender, EventArgs e)
         {
+            Debug.WriteLine("Fetchig");
             await ViewModel.GetMoreItems();
             if (progressAnimation.GetCurrentState() == ClockState.Active)
             {
+                Debug.WriteLine("stopping animation");
                 progressAnimation.Stop();
+                _animating = false;
             }
         }
     }
